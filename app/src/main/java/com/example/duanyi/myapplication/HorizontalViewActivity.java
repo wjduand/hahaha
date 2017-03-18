@@ -154,14 +154,14 @@ public class HorizontalViewActivity extends AppCompatActivity implements GoogleA
                                                 HashMap<String, String> m = new HashMap<String, String>();
                                                 m.put("summary", items.getJSONObject(i).getString("summary"));
                                                 m.put("id", items.getJSONObject(i).getString("id"));
-                                                m.put("location", items.getJSONObject(i).getString("location"));
+                                                m.put("description", items.getJSONObject(i).getString("description"));
                                                 posts.add(m);
                                             }
                                             final SimpleAdapter postAdapter = new SimpleAdapter(
                                                     HorizontalViewActivity.this,
                                                     posts,
                                                     R.layout.google_plus_item,
-                                                    new String[]{"summary","id","location"},
+                                                    new String[]{"summary","id","description"},
                                                     new int[]{R.id.google_plus_item_date_text, R.id.google_plus_item_text, R.id.google_plus_location_text});
                                             runOnUiThread(new Runnable() {
                                                 @Override
