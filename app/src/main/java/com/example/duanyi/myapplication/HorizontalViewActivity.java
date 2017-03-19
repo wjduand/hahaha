@@ -59,6 +59,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.MediaType;
 
+import com.google.android.gms.common.AccountPicker;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -89,7 +90,7 @@ public class HorizontalViewActivity extends AppCompatActivity implements GoogleA
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        SharedPreferences authPreference = getSharedPreferences("auth", MODE_PRIVATE);
+        final SharedPreferences authPreference = getSharedPreferences("auth", MODE_PRIVATE);
         setContentView(R.layout.activity_horizontal); //activity_api
         mAuthorizationService = new AuthorizationService(this);
         if(mGoogleApiClient == null){
@@ -144,7 +145,6 @@ public class HorizontalViewActivity extends AppCompatActivity implements GoogleA
                                     public void onResponse(Call call, Response response) throws IOException {
                                         String r = response.body().string();
                                         //Log.i("respong.body", response.body().string());
-                                        Log.i("herrrrrrererer:   " , r);
                                         try {
                                             JSONObject j = new JSONObject(r);
 
@@ -154,7 +154,9 @@ public class HorizontalViewActivity extends AppCompatActivity implements GoogleA
                                                 HashMap<String, String> m = new HashMap<String, String>();
                                                 m.put("summary", items.getJSONObject(i).getString("summary"));
                                                 m.put("id", items.getJSONObject(i).getString("id"));
-                                                m.put("description", items.getJSONObject(i).getString("description"));
+                                                if(items.getJSONObject(i).has("description")){
+                                                m.put("description", items.getJSONObject(i).getString("description"));}
+                                                //m.put("description", items.getJSONObject(i).getString("description"));
                                                 posts.add(m);
                                             }
                                             final SimpleAdapter postAdapter = new SimpleAdapter(
@@ -162,7 +164,7 @@ public class HorizontalViewActivity extends AppCompatActivity implements GoogleA
                                                     posts,
                                                     R.layout.google_plus_item,
                                                     new String[]{"summary","id","description"},
-                                                    new int[]{R.id.google_plus_item_date_text, R.id.google_plus_item_text, R.id.google_plus_location_text});
+                                                    new int[]{R.id.google_plus_item_date_text, R.id.google_plus_item_text, R.id.description_text});
                                             runOnUiThread(new Runnable() {
                                                 @Override
                                                 public void run() {
@@ -192,11 +194,13 @@ public class HorizontalViewActivity extends AppCompatActivity implements GoogleA
                         public void execute(@Nullable String accessToken, @Nullable String idToken, @Nullable AuthorizationException e) {
                             if (e == null) {
                                 mOkHttpClient = new OkHttpClient();//key = AIzaSyBFSvufl2Wxcl_587Lp8AaUk-jpV8CjAu8
-                                HttpUrl reqUrl = HttpUrl.parse("https://www.googleapis.com/plusDomains/v1/people/me/activities/");//102828643594070495481
+                                EditText edittext_caid = (EditText) findViewById(R.id.calendarid);
+                                String text_caid = edittext_caid.getText().toString();
+                                HttpUrl reqUrl = HttpUrl.parse("https://www.googleapis.com/calendar/v3/calendars/" + text_caid);
                                 //reqUrl = reqUrl.newBuilder().addQueryParameter("key", "AIzaSyBFSvufl2Wxcl_587Lp8AaUk-jpV8CjAu8").build();
                                 //String json = "{'object': { 'originalContent' : 'QAQ' }, 'access': {'domainRestricted' : true }}";
-                                EditText edittext_lat = (EditText) findViewById(R.id.lat_output);
-                                EditText edittext_long = (EditText) findViewById(R.id.long_output);
+                                TextView edittext_lat = (TextView) findViewById(R.id.lat_output);
+                                TextView edittext_long = (TextView) findViewById(R.id.long_output);
                                 String text_lat = edittext_lat.getText().toString();
                                 String text_long = edittext_long.getText().toString();
                                 String loca = "My location is: ";
@@ -204,7 +208,51 @@ public class HorizontalViewActivity extends AppCompatActivity implements GoogleA
                                 String longt = "Longitude: ";
                                 String comma = ", ";
                                 //string Jason = "{ 'object': ' " + variableName + " '}"
-                                String json = "{'object': { 'originalContent' : ' " + loca + "" + lat + "" + text_lat + "" + comma + "" + longt + "" + text_long + " ' }, 'access': {'domainRestricted' : true }}";
+                                String json = "{ 'description' : ' " + loca + "" + lat + "" + text_lat + "" + comma + "" + longt + "" + text_long + " ' }";
+                                RequestBody body = RequestBody.create(JSON, json);
+                                Request request = new Request.Builder()
+                                        .url(reqUrl)
+                                        .patch(body)
+                                        .addHeader("Authorization", "Bearer " + accessToken)
+                                        .build();
+
+                                mOkHttpClient.newCall(request).enqueue(new Callback() {
+                                    @Override
+                                    public void onFailure(Call call, IOException e) {
+                                        e.printStackTrace();
+                                    }
+
+                                    @Override
+                                    public void onResponse(Call call, Response response) throws IOException {
+                                        String r = response.body().string();
+                                    }
+                                });
+                            }
+                        }
+                    });
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        ((Button) findViewById(R.id.add_calendar_button)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    mAuthState.performActionWithFreshTokens(mAuthorizationService, new AuthState.AuthStateAction() {
+                        @Override
+                        public void execute(@Nullable String accessToken, @Nullable String idToken, @Nullable AuthorizationException e) {
+                            if (e == null) {
+                                mOkHttpClient = new OkHttpClient();//key = AIzaSyBFSvufl2Wxcl_587Lp8AaUk-jpV8CjAu8
+                                HttpUrl reqUrl = HttpUrl.parse("https://www.googleapis.com/calendar/v3/calendars");
+                                //reqUrl = reqUrl.newBuilder().addQueryParameter("key", "AIzaSyBFSvufl2Wxcl_587Lp8AaUk-jpV8CjAu8").build();
+                                //String json = "{'object': { 'originalContent' : 'QAQ' }, 'access': {'domainRestricted' : true }}";
+                                EditText edittext_summary = (EditText) findViewById(R.id.new_summary);
+                                EditText edittext_description = (EditText) findViewById(R.id.new_description);
+                                String text_summary = edittext_summary.getText().toString();
+                                String text_description = edittext_description.getText().toString();
+                                //string Jason = "{ 'object': ' " + variableName + " '}"
+                                String json = "{ 'description' : ' " + text_description + " ', 'summary' : ' " + text_summary + " '}";
                                 RequestBody body = RequestBody.create(JSON, json);
                                 Request request = new Request.Builder()
                                         .url(reqUrl)
@@ -234,11 +282,10 @@ public class HorizontalViewActivity extends AppCompatActivity implements GoogleA
         ((Button) findViewById(R.id.sign_out)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Uri uri = Uri.parse("http://www.google.com");
-                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-                startActivity(intent);
 
-
+                authPreference.edit().clear().commit();
+                Intent newIntent = new Intent(HorizontalViewActivity.this, MainActivity.class);
+                startActivity(newIntent);
             }
         });
     }
